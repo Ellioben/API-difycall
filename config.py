@@ -1,3 +1,21 @@
-# Dify API配置
-DIFY_API_KEY = "api-key"  # 替换成你的API密钥
-DIFY_API_BASE_URL = "http://127.0.0.1/v1"  # 根据你的实际端口号调整
+# Dify 平台配置
+DIFY_PLATFORMS = {
+    "platform1": {
+        "api_key": "api-key",
+        "base_url": "http://127.0.0.1/v1",
+        "description": "平台1 - 通用对话"
+    },
+    "platform2": {
+        "api_key": "app-2nd-platform-key",
+        "base_url": "http://127.0.0.1/v1",
+        "description": "平台2 - demo1"
+    },
+    "platform3": {
+        "api_key": "app-3rd-platform-key",
+        "base_url": "http://127.0.0.1/v1",
+        "description": "平台3 - demo2"
+    }
+}
+
+# 默认平台
+DEFAULT_PLATFORM = "platform1"

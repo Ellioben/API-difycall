@@ -1,17 +1,27 @@
 import requests
 import json
-from config import DIFY_API_KEY, DIFY_API_BASE_URL
+from config import DIFY_PLATFORMS, DEFAULT_PLATFORM
 from typing import Dict, Any, Optional
 
 class DifyClient:
-    def __init__(self, user_id: str = "abc-123"):
-        self.api_key = DIFY_API_KEY
-        self.base_url = DIFY_API_BASE_URL
+    def __init__(self, platform: str = DEFAULT_PLATFORM, user_id: str = "abc-123"):
+        if platform not in DIFY_PLATFORMS:
+            raise ValueError(f"Unknown platform: {platform}. Available platforms: {list(DIFY_PLATFORMS.keys())}")
+            
+        self.platform = platform
+        platform_config = DIFY_PLATFORMS[platform]
+        self.api_key = platform_config["api_key"]
+        self.base_url = platform_config["base_url"]
         self.user_id = user_id
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
+
+    @classmethod
+    def get_available_platforms(cls) -> Dict[str, str]:
+        """获取所有可用的平台及其描述"""
+        return {k: v["description"] for k, v in DIFY_PLATFORMS.items()}
 
     def chat(self, message: str, conversation_id: Optional[str] = None, stream: bool = True) -> Dict[str, Any]:
         url = f"{self.base_url}/chat-messages"
