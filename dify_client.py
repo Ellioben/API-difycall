@@ -89,7 +89,10 @@ class DifyClient:
 
     def get_conversation_history(self, conversation_id: str) -> Dict[str, Any]:
         url = f"{self.base_url}/messages"
-        params = {"conversation_id": conversation_id}
+        params = {
+            "conversation_id": conversation_id,
+            "user": self.user_id
+        }
         
         response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
