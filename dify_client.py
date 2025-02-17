@@ -34,12 +34,17 @@ class DifyClient:
             "files": []
         }
         
+        print(f"发送请求到 Dify - conversation_id: {conversation_id}")
+        
         response = requests.post(url, headers=self.headers, json=payload, stream=stream)
         response.raise_for_status()
         
         if stream:
             return self._process_sse_response(response)
-        return response.json()
+        
+        json_response = response.json()
+        print(f"Dify 返回 - conversation_id: {json_response.get('conversation_id')}")
+        return json_response
 
     def chat_with_image(self, message: str, image_url: str, conversation_id: Optional[str] = None):
         url = f"{self.base_url}/chat-messages"
