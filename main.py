@@ -173,6 +173,69 @@ async def get_history(
         logger.error(f"获取历史记录失败: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/chat/history")
+async def get_chat_history(
+    conversation_id: str = Query(..., description="对话ID"),
+    platform: str = Query(..., description="选择平台")
+):
+    try:
+        logger.info(f"获取对话历史 - 平台: {platform}, 对话ID: {conversation_id}")
+        
+        if platform not in DIFY_PLATFORMS:
+            logger.error(f"无效的平台: {platform}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid platform. Available platforms: {list(DIFY_PLATFORMS.keys())}"
+            )
+            
+        client = DifyClient(platform=platform)
+        response = client.get_conversation_history(conversation_id)
+        
+        # 直接返回原始响应，保留所有字段
+        if isinstance(response, dict):
+            logger.info(f"获取历史记录成功 - 平台: {platform}")
+            return {
+                'data': [
+                    {
+                        'id': msg.get('id'),
+                        'conversation_id': msg.get('conversation_id'),
+                        'inputs': msg.get('inputs', {}),
+                        'query': msg.get('query'),
+                        'message_files': [
+                            {
+                                'id': file.get('id'),
+                                'type': file.get('type'),
+                                'url': file.get('url'),
+                                'belongs_to': file.get('belongs_to')
+                            } for file in msg.get('message_files', [])
+                        ],
+                        'agent_thoughts': [
+                            {
+                                'id': thought.get('id'),
+                                'message_id': thought.get('message_id'),
+                                'position': thought.get('position'),
+                                'thought': thought.get('thought'),
+                                'observation': thought.get('observation'),
+                                'tool': thought.get('tool'),
+                                'tool_input': thought.get('tool_input'),
+                                'created_at': thought.get('created_at'),
+                                'message_files': thought.get('message_files', [])
+                            } for thought in msg.get('agent_thoughts', [])
+                        ],
+                        'answer': msg.get('answer'),
+                        'created_at': msg.get('created_at'),
+                        'feedback': msg.get('feedback', {}),
+                        'retriever_resources': msg.get('retriever_resources', [])
+                    } for msg in response.get('data', [])
+                ],
+                'has_more': response.get('has_more', False),
+                'limit': response.get('limit')
+            }
+        return response
+    except Exception as e:
+        logger.error(f"获取历史记录失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     logger.info("服务启动")
     uvicorn.run(app, host="0.0.0.0", port=8000) 
