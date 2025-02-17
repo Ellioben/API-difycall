@@ -1,6 +1,6 @@
-# difyapi-call
+# API-difycall
 
-difyapi-call 是一个轻量级的 Python 项目，用于简化与 Dify API 的交互。Dify 是一个强大的 AI 应用开发平台，本库旨在让开发者能够更便捷地集成和使用 Dify 的各项功能。
+API-difycall 是一个轻量级的 Python 项目，用于简化与 Dify API 的交互。Dify 是一个强大的 AI 应用开发平台，本库旨在让开发者能够更便捷地集成和使用 Dify 的各项功能。
 
 ## 特性
 
@@ -14,6 +14,15 @@ difyapi-call 是一个轻量级的 Python 项目，用于简化与 Dify API 的�
 
 ```
 直接启动就行
+curl --location --request GET 'http://localhost:8000/chat?query=%E5%8F%AF%E4%BB%A5%E7%BB%99%E6%88%91%E4%BB%8B%E7%BB%8D%E4%B8%80%E4%B8%8B%E9%A1%B9%E7%9B%AE%E5%90%97&platform=platform1' \
+--header 'Content-Type: application/json' \
+--header 'Accept: */*' \
+--header 'Host: localhost:8000' \
+--header 'Connection: keep-alive' \
+
+```
+上面的接口：
+```
 你: 介绍一下你自己
 
 AI: <think>
