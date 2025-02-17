@@ -1,14 +1,11 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Query
 from pydantic import BaseModel
 from dify_client import DifyClient
 import uvicorn
 from typing import Optional, List, Dict
-from config import DEFAULT_PLATFORM
+from config import DIFY_PLATFORMS
 
 app = FastAPI()
-
-# 创建平台客户端字典
-clients = {platform: DifyClient(platform=platform) for platform in DifyClient.get_available_platforms()}
 
 # Dify 原生 API 的请求模型
 class FileInfo(BaseModel):
@@ -23,13 +20,13 @@ class DifyRequest(BaseModel):
     conversation_id: str = ""
     user: str = "abc-123"
     files: List[FileInfo] = []
-    platform: Optional[str] = None  # 新增平台选择字段
+    platform: str  # 平台参数改为必填
 
 # 简化版的请求模型
 class SimpleRequest(BaseModel):
     query: str
     conversation_id: Optional[str] = None
-    platform: Optional[str] = None  # 新增平台选择字段
+    platform: str  # 平台参数改为必填
 
 @app.get("/platforms")
 async def get_platforms():
@@ -41,31 +38,36 @@ async def get_platforms():
 async def chat(
     request: Optional[SimpleRequest] = None,
     query: Optional[str] = None,
-    platform: Optional[str] = None
+    platform: str = Query(None),  # 改为可选参数
 ):
     try:
         # 处理 GET 请求
-        if query is not None:
-            message = query
-            conversation_id = None
-            selected_platform = platform
-        # 处理 POST 请求
-        elif request is not None:
+        if request and request.query:
+            # POST 请求
             message = request.query
             conversation_id = request.conversation_id
-            selected_platform = request.platform
+            platform = request.platform
+        elif query:
+            # GET 请求
+            message = query
+            conversation_id = None
         else:
             raise HTTPException(status_code=400, detail="Missing query parameter")
 
-        # 使用指定的平台或默认平台
-        selected_platform = selected_platform or DEFAULT_PLATFORM
-        if selected_platform not in clients:
+        # 验证平台参数
+        if not platform:
+            raise HTTPException(status_code=400, detail="Platform parameter is required")
+
+        # 验证平台是否有效
+        if platform not in DIFY_PLATFORMS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid platform. Available platforms: {list(clients.keys())}"
+                detail=f"Invalid platform. Available platforms: {list(DIFY_PLATFORMS.keys())}"
             )
 
-        response = clients[selected_platform].chat(
+        # 创建对应平台的客户端
+        client = DifyClient(platform=platform)
+        response = client.chat(
             message=message,
             conversation_id=conversation_id,
             stream=False
@@ -77,14 +79,13 @@ async def chat(
 @app.post("/v1/chat-messages")
 async def dify_chat(request: DifyRequest):
     try:
-        selected_platform = request.platform or DEFAULT_PLATFORM
-        if selected_platform not in clients:
+        if request.platform not in DIFY_PLATFORMS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid platform. Available platforms: {list(clients.keys())}"
+                detail=f"Invalid platform. Available platforms: {list(DIFY_PLATFORMS.keys())}"
             )
 
-        client = clients[selected_platform]
+        client = DifyClient(platform=request.platform)
         
         if request.files:
             response = client.chat_with_image(
@@ -111,16 +112,19 @@ async def dify_chat(request: DifyRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/v1/messages")
-async def get_history(conversation_id: str, platform: Optional[str] = None):
+async def get_history(
+    conversation_id: str,
+    platform: str = Query(..., description="选择平台")  # 平台参数改为必填
+):
     try:
-        selected_platform = platform or DEFAULT_PLATFORM
-        if selected_platform not in clients:
+        if platform not in DIFY_PLATFORMS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid platform. Available platforms: {list(clients.keys())}"
+                detail=f"Invalid platform. Available platforms: {list(DIFY_PLATFORMS.keys())}"
             )
             
-        return clients[selected_platform].get_conversation_history(conversation_id)
+        client = DifyClient(platform=platform)
+        return client.get_conversation_history(conversation_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
