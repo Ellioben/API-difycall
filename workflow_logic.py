@@ -18,6 +18,29 @@ class DifyWorkflow:
             "Content-Type": "application/json"
         }
 
+    def execute_workflow(
+        self,
+        inputs: Dict[str, Any] = {},
+        files: List[Dict] = []
+    ):
+        url = f"{self.base_url}/workflows/run"
+        payload = {
+            "inputs": inputs,
+            "response_mode": "streaming",
+            "user": self.user_id,
+            "files": files
+        }
+
+        response = requests.post(url, headers=self.headers, json=payload)
+        response.raise_for_status()
+
+        # Assuming the response is a JSON object
+        data = response.content.decode()
+        if 'data' in data and 'outputs' in data['data']:
+            yield data['data']['outputs']['text']
+        else:
+            raise ValueError("Unexpected response format")
+
     def create_completion(
         self,
         inputs: Dict[str, Any] = {},
@@ -60,38 +83,6 @@ class DifyWorkflow:
             files=files,
             response_mode=response_mode
         )
-
-    def create_streaming_completion(
-        self,
-        query: str,
-        inputs: Dict[str, Any] = {},
-        files: List[Dict] = []
-    ):
-        url = f"{self.base_url}/completion-messages"
-        payload = {
-            "inputs": inputs,
-            "query": query,
-            "response_mode": "streaming",
-            "user": self.user_id,
-            "files": files
-        }
-
-        response = requests.post(url, headers=self.headers, json=payload, stream=True)
-        response.raise_for_status()
-
-        for line in response.iter_lines():
-            if line:
-                try:
-                    line_str = line.decode('utf-8')
-                    if line_str.startswith('data: '):
-                        json_str = line_str[6:]
-                        data = json.loads(json_str)
-                        if 'answer' in data:
-                            yield data['answer']
-                except json.JSONDecodeError as e:
-                    print(f"JSON解析错误: {str(e)}")
-                except Exception as e:
-                    print(f"处理响应时出错: {str(e)}")
 
     def get_completion_message(self, message_id: str) -> Dict[str, Any]:
         url = f"{self.base_url}/completion-messages/{message_id}"

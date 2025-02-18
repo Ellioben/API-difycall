@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Response, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from config import DIFY_PLATFORMS
@@ -34,14 +35,6 @@ class DifyRequest(BaseModel):
 class SimpleRequest(BaseModel):
     query: str
     conversation_id: Optional[str] = None
-    platform: str
-
-class WorkflowRequest(BaseModel):
-    inputs: Dict = {}
-    query: str
-    file_urls: Optional[List[str]] = None
-    file_type: str = "image"
-    response_mode: str = "blocking"
     platform: str
 
 class WorkflowRunRequest(BaseModel):
@@ -178,70 +171,7 @@ async def get_chat_history(
         logger.error(f"获取历史记录失败: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/workflow/completion")
-async def create_workflow_completion(request: WorkflowRequest):
-    try:
-        logger.info(f"创建工作流任务 - 平台: {request.platform}, 查询: {request.query}")
-        
-        if request.platform not in DIFY_PLATFORMS:
-            logger.error(f"无效的平台: {request.platform}")
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid platform. Available platforms: {list(DIFY_PLATFORMS.keys())}"
-            )
-
-        workflow_client = DifyWorkflow(platform=request.platform)
-        
-        if request.file_urls:
-            response = workflow_client.create_completion_with_files(
-                query=request.query,
-                file_urls=request.file_urls,
-                file_type=request.file_type,
-                inputs=request.inputs,
-                response_mode=request.response_mode
-            )
-        else:
-            response = workflow_client.create_completion(
-                inputs=request.inputs,
-                query=request.query,
-                response_mode=request.response_mode
-            )
-        
-        logger.info(f"工作流任务创建成功 - 平台: {request.platform}")
-        return response
-
-    except Exception as e:
-        logger.error(f"创建工作流任务失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/workflow/streaming-completion")
-async def create_streaming_workflow_completion(request: WorkflowRequest):
-    try:
-        logger.info(f"创建流式工作流任务 - 平台: {request.platform}, 查询: {request.query}")
-        
-        if request.platform not in DIFY_PLATFORMS:
-            logger.error(f"无效的平台: {request.platform}")
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid platform. Available platforms: {list(DIFY_PLATFORMS.keys())}"
-            )
-
-        workflow_client = DifyWorkflow(platform=request.platform)
-        
-        response = workflow_client.create_streaming_completion(
-            query=request.query,
-            inputs=request.inputs,
-            files=[{"type": request.file_type, "url": url} for url in request.file_urls or []]
-        )
-        
-        logger.info(f"流式工作流任务创建成功 - 平台: {request.platform}")
-        return Response(content=response, media_type="text/event-stream")
-
-    except Exception as e:
-        logger.error(f"创建流式工作流任务失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/workflow/run")
+@router.post("/workflows/run")
 async def run_workflow(request: WorkflowRunRequest):
     """
     运行工作流任务
@@ -261,13 +191,12 @@ async def run_workflow(request: WorkflowRunRequest):
 
         workflow_client = DifyWorkflow(platform=request.platform, user_id=request.user)
         
-        response = workflow_client.create_streaming_completion(
-            query="",
+        response_generator = workflow_client.execute_workflow(
             inputs=request.inputs
         )
         
         logger.info(f"工作流任务运行成功 - 用户: {request.user}")
-        return Response(content=response, media_type="text/event-stream")
+        return StreamingResponse(response_generator, media_type="text/event-stream")
 
     except Exception as e:
         logger.error(f"运行工作流任务失败: {str(e)}")
