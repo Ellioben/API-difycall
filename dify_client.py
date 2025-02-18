@@ -5,6 +5,12 @@ from typing import Dict, Any, Optional
 
 class DifyClient:
     def __init__(self, platform: str = DEFAULT_PLATFORM, user_id: str = "abc-123"):
+        """
+        初始化 DifyClient 实例
+
+        :param platform: 平台名称
+        :param user_id: 用户ID
+        """
         if platform not in DIFY_PLATFORMS:
             raise ValueError(f"Unknown platform: {platform}. Available platforms: {list(DIFY_PLATFORMS.keys())}")
             
@@ -20,10 +26,22 @@ class DifyClient:
 
     @classmethod
     def get_available_platforms(cls) -> Dict[str, str]:
-        """获取所有可用的平台及其描述"""
+        """
+        获取所有可用的平台及其描述
+
+        :return: 平台描述字典
+        """
         return {k: v["description"] for k, v in DIFY_PLATFORMS.items()}
 
     def chat(self, message: str, conversation_id: Optional[str] = None, stream: bool = True) -> Dict[str, Any]:
+        """
+        发送聊天消息
+
+        :param message: 要发送的消息
+        :param conversation_id: 对话ID
+        :param stream: 是否使用流式响应
+        :return: 响应数据
+        """
         url = f"{self.base_url}/chat-messages"
         payload = {
             "inputs": {},
@@ -47,6 +65,14 @@ class DifyClient:
         return json_response
 
     def chat_with_image(self, message: str, image_url: str, conversation_id: Optional[str] = None):
+        """
+        发送带图片的聊天消息
+
+        :param message: 要发送的消息
+        :param image_url: 图片的URL
+        :param conversation_id: 对话ID
+        :return: 响应数据
+        """
         url = f"{self.base_url}/chat-messages"
         payload = {
             "inputs": {},
@@ -70,6 +96,9 @@ class DifyClient:
     def _process_sse_response(self, response):
         """
         处理SSE格式的响应
+
+        :param response: 响应对象
+        :yield: 解析后的数据
         """
         for line in response.iter_lines():
             if line:
@@ -88,6 +117,12 @@ class DifyClient:
                     print(f"处理响应时出错: {str(e)}")
 
     def get_conversation_history(self, conversation_id: str) -> Dict[str, Any]:
+        """
+        获取对话历史记录
+
+        :param conversation_id: 对话ID
+        :return: 历史记录数据
+        """
         url = f"{self.base_url}/messages"
         params = {
             "conversation_id": conversation_id,

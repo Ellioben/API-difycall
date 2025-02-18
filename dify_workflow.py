@@ -5,6 +5,12 @@ from config import DIFY_PLATFORMS
 
 class DifyWorkflow:
     def __init__(self, platform: str, user_id: str = "abc-123"):
+        """
+        初始化 DifyWorkflow 实例
+
+        :param platform: 平台名称
+        :param user_id: 用户ID
+        """
         if platform not in DIFY_PLATFORMS:
             raise ValueError(f"Unknown platform: {platform}. Available platforms: {list(DIFY_PLATFORMS.keys())}")
             
@@ -27,6 +33,12 @@ class DifyWorkflow:
     ) -> Dict[str, Any]:
         """
         创建一个工作流任务
+
+        :param inputs: 输入参数
+        :param query: 查询内容
+        :param files: 文件列表
+        :param response_mode: 响应模式
+        :return: 响应数据
         """
         url = f"{self.base_url}/completion-messages"
         payload = {
@@ -51,6 +63,13 @@ class DifyWorkflow:
     ) -> Dict[str, Any]:
         """
         创建带文件的工作流任务
+
+        :param query: 查询内容
+        :param file_urls: 文件URL列表
+        :param file_type: 文件类型
+        :param inputs: 输入参数
+        :param response_mode: 响应模式
+        :return: 响应数据
         """
         files = [
             {
@@ -75,6 +94,11 @@ class DifyWorkflow:
     ):
         """
         创建流式响应的工作流任务
+
+        :param query: 查询内容
+        :param inputs: 输入参数
+        :param files: 文件列表
+        :yield: 流式响应数据
         """
         url = f"{self.base_url}/completion-messages"
         payload = {
@@ -105,6 +129,9 @@ class DifyWorkflow:
     def get_completion_message(self, message_id: str) -> Dict[str, Any]:
         """
         获取工作流消息详情
+
+        :param message_id: 消息ID
+        :return: 消息详情
         """
         url = f"{self.base_url}/completion-messages/{message_id}"
         response = requests.get(url, headers=self.headers)
@@ -118,6 +145,10 @@ class DifyWorkflow:
     ) -> Dict[str, Any]:
         """
         获取工作流消息列表
+
+        :param last_id: 上一个消息ID
+        :param limit: 返回消息数量限制
+        :return: 消息列表
         """
         url = f"{self.base_url}/completion-messages"
         params = {

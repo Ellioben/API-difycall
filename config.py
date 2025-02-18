@@ -10,10 +10,10 @@ DIFY_PLATFORMS = {
         "base_url": "http://127.0.0.1/v1",
         "description": "平台2 - demo"
     },
-    "platform3": {
-        "api_key": "app-3rd-platform-key",
+    "workflow": {
+        "api_key": "app-PyZuTCnPWrgDWVTCeU4rp5kf",
         "base_url": "http://127.0.0.1/v1",
-        "description": "平台3 - demo2"
+        "description": "标题党workflow"
     }
 }
 

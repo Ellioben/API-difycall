@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Response, Query
 from pydantic import BaseModel
 from dify_client import DifyClient
+from dify_workflow import DifyWorkflow  # 导入 DifyWorkflow
 import uvicorn
 from typing import Optional, List, Dict
 from config import DIFY_PLATFORMS
@@ -38,9 +39,22 @@ class SimpleRequest(BaseModel):
     conversation_id: Optional[str] = None
     platform: str  # 平台参数改为必填
 
+# 新增的工作流请求模型
+class WorkflowRequest(BaseModel):
+    inputs: Dict = {}
+    query: str
+    file_urls: Optional[List[str]] = None
+    file_type: str = "image"
+    response_mode: str = "blocking"
+    platform: str
+
 @app.get("/platforms")
 async def get_platforms():
-    """获取所有可用的平台及其描述"""
+    """
+    获取所有可用的平台及其描述
+
+    :return: 平台描述列表
+    """
     logger.info("获取平台列表")
     return DifyClient.get_available_platforms()
 
@@ -52,6 +66,15 @@ async def chat(
     platform: str = Query(None),  # 改为可选参数
     conversation_id: Optional[str] = None  # 添加会话ID参数
 ):
+    """
+    处理聊天请求
+
+    :param request: POST 请求体
+    :param query: GET 请求参数
+    :param platform: 平台名称
+    :param conversation_id: 对话ID
+    :return: 聊天响应
+    """
     try:
         # 处理 GET 请求
         if request and request.query:
@@ -110,6 +133,12 @@ async def chat(
 
 @app.post("/v1/chat-messages")
 async def dify_chat(request: DifyRequest):
+    """
+    处理原生 Dify API 聊天请求
+
+    :param request: 请求体
+    :return: 聊天响应
+    """
     try:
         logger.info(f"原生 API 请求 - 平台: {request.platform}, 消息: {request.query}")
         
@@ -155,6 +184,13 @@ async def get_history(
     conversation_id: str,
     platform: str = Query(..., description="选择平台")  # 平台参数改为必填
 ):
+    """
+    获取对话历史记录
+
+    :param conversation_id: 对话ID
+    :param platform: 平台名称
+    :return: 历史记录
+    """
     try:
         logger.info(f"获取对话历史 - 平台: {platform}, 对话ID: {conversation_id}")
         
@@ -178,6 +214,13 @@ async def get_chat_history(
     conversation_id: str = Query(..., description="对话ID"),
     platform: str = Query(..., description="选择平台")
 ):
+    """
+    获取聊天历史记录
+
+    :param conversation_id: 对话ID
+    :param platform: 平台名称
+    :return: 聊天历史记录
+    """
     try:
         logger.info(f"获取对话历史 - 平台: {platform}, 对话ID: {conversation_id}")
         
@@ -234,6 +277,81 @@ async def get_chat_history(
         return response
     except Exception as e:
         logger.error(f"获取历史记录失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/workflow/completion")
+async def create_workflow_completion(request: WorkflowRequest):
+    """
+    创建一个工作流任务
+
+    :param request: 请求体
+    :return: 工作流响应
+    """
+    try:
+        logger.info(f"创建工作流任务 - 平台: {request.platform}, 查询: {request.query}")
+        
+        if request.platform not in DIFY_PLATFORMS:
+            logger.error(f"无效的平台: {request.platform}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid platform. Available platforms: {list(DIFY_PLATFORMS.keys())}"
+            )
+
+        workflow_client = DifyWorkflow(platform=request.platform)
+        
+        if request.file_urls:
+            response = workflow_client.create_completion_with_files(
+                query=request.query,
+                file_urls=request.file_urls,
+                file_type=request.file_type,
+                inputs=request.inputs,
+                response_mode=request.response_mode
+            )
+        else:
+            response = workflow_client.create_completion(
+                inputs=request.inputs,
+                query=request.query,
+                response_mode=request.response_mode
+            )
+        
+        logger.info(f"工作流任务创建成功 - 平台: {request.platform}")
+        return response
+
+    except Exception as e:
+        logger.error(f"创建工作流任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/workflow/streaming-completion")
+async def create_streaming_workflow_completion(request: WorkflowRequest):
+    """
+    创建流式响应的工作流任务
+
+    :param request: 请求体
+    :return: 流式响应
+    """
+    try:
+        logger.info(f"创建流式工作流任务 - 平台: {request.platform}, 查询: {request.query}")
+        
+        if request.platform not in DIFY_PLATFORMS:
+            logger.error(f"无效的平台: {request.platform}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid platform. Available platforms: {list(DIFY_PLATFORMS.keys())}"
+            )
+
+        workflow_client = DifyWorkflow(platform=request.platform)
+        
+        response = workflow_client.create_streaming_completion(
+            query=request.query,
+            inputs=request.inputs,
+            files=[{"type": request.file_type, "url": url} for url in request.file_urls or []]
+        )
+        
+        logger.info(f"流式工作流任务创建成功 - 平台: {request.platform}")
+        return Response(content=response, media_type="text/event-stream")
+
+    except Exception as e:
+        logger.error(f"创建流式工作流任务失败: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
