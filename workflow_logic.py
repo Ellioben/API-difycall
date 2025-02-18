@@ -26,7 +26,7 @@ class DifyWorkflow:
         url = f"{self.base_url}/workflows/run"
         payload = {
             "inputs": inputs,
-            "response_mode": "streaming",
+            "response_mode": "blocking",
             "user": self.user_id,
             "files": files
         }
@@ -35,15 +35,21 @@ class DifyWorkflow:
         response.raise_for_status()
 
         # Assuming the response is a JSON object
-        data = response.content.decode('utf-8')
+        data = response.json()
         if 'data' in data:
-            for item in data['data']:
-                if 'outputs' in item:
-                    yield item['outputs']['text']
+            # Check if 'data' is a dictionary
+            if isinstance(data['data'], dict):
+                outputs = data['data'].get('outputs')
+                print(f"Outputs: {outputs}")  # Debug log
+                if outputs and 'title_list' in outputs:
+                    for title in outputs['title_list']:
+                        yield title + "\n"
                 else:
-                    raise ValueError("Unexpected response format")
+                    raise ValueError("Unexpected response format: missing 'outputs' or 'title_list'")
+            else:
+                raise ValueError("Unexpected response format: 'data' is not a dictionary")
         else:
-            raise ValueError("Unexpected response format")
+            raise ValueError("Unexpected response format: missing 'data'")
 
     def create_completion(
         self,
