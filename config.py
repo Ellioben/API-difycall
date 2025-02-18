@@ -13,7 +13,21 @@ DIFY_PLATFORMS = {
     "workflow": {
         "api_key": "app-PyZuTCnPWrgDWVTCeU4rp5kf",
         "base_url": "http://127.0.0.1/v1",
-        "description": "标题党workflow"
+        "description": "标题党workflow",
+        "config": {
+            "inputs": {
+                "subject": "string",  # Define the expected type or structure
+                # Add more input parameters as needed
+            },
+            "outputs": {
+                "title_list": "list",  # Define the expected type or structure
+                # Add more output parameters as needed
+            }
+        }
+    },
+    "example_platform": {
+        "api_key": "your_api_key_here",
+        "base_url": "https://api.example.com"
     }
 }
 

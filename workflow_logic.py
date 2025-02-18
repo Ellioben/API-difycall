@@ -37,7 +37,6 @@ class DifyWorkflow:
         # Assuming the response is a JSON object
         data = response.json()
         if 'data' in data:
-            # Check if 'data' is a dictionary
             if isinstance(data['data'], dict):
                 outputs = data['data'].get('outputs')
                 print(f"Outputs: {outputs}")  # Debug log
