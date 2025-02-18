@@ -35,9 +35,13 @@ class DifyWorkflow:
         response.raise_for_status()
 
         # Assuming the response is a JSON object
-        data = response.content.decode()
-        if 'data' in data and 'outputs' in data['data']:
-            yield data['data']['outputs']['text']
+        data = response.content.decode('utf-8')
+        if 'data' in data:
+            for item in data['data']:
+                if 'outputs' in item:
+                    yield item['outputs']['text']
+                else:
+                    raise ValueError("Unexpected response format")
         else:
             raise ValueError("Unexpected response format")
 
