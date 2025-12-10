@@ -2,7 +2,7 @@
 
 API-difycall 是一个轻量级的 Python 项目，用于简化与 Dify API 的交互。Dify 是一个强大的 AI 应用开发平台，本库旨在让开发者能够更便捷地集成和使用 Dify 的各项功能。
 
-如果需要CLI版本，可以看另一个仓库 https://github.com/Ellioben/CLI-difycall
+如果需要纯命令行版本demo，可以看另一个仓库 https://github.com/Ellioben/CLI-difycall
 
 ## 特性
 
